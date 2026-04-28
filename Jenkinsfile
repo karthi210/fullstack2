@@ -1,30 +1,22 @@
 pipeline {
-    agent { label 'agent-1' }
+    agent { label 'nodejs' }
+
+    environment {
+        APP_DIR = "/home/ubuntu/app"
+    }
 
     stages {
 
-        stage('Clone Repo') {
+        stage('Clone') {
             steps {
-                git branch: 'main', credentialsId: '011', url: 'https://github.com/karthi210/fullstack2.git'
+                git branch: 'main', credentialsId: '001', url: 'https://github.com/karthi210/fullstack2.git'
             }
         }
 
-        stage('Build Backend') {
+        stage('Install Backend Dependencies') {
             steps {
                 dir('backend') {
-                    sh 'mvn clean package'
-                }
-            }
-        }
-
-        stage('Build Frontend') {
-            steps {
-                dir('frontend') {
-                    sh '''
-                    npm install
-                    chmod +x node_modules/.bin/react-scripts
-                    npm run build
-                    '''
+                    sh 'npm install'
                 }
             }
         }
@@ -32,13 +24,25 @@ pipeline {
         stage('Deploy Backend') {
             steps {
                 sh '''
-                mkdir -p /home/ubuntu/app
-                cp backend/target/backend-1.0.jar /home/ubuntu/app/
-        
-                pkill -f backend || true
-        
-                cd /home/ubuntu/app
-                nohup java -jar backend-1.0.jar > backend.log 2>&1 &
+                rm -rf $APP_DIR
+                mkdir -p $APP_DIR
+                cp -r backend $APP_DIR/
+                '''
+            }
+        }
+
+        stage('Start/Restart Backend') {
+            steps {
+                sh '''
+                cd $APP_DIR/backend
+
+                # Kill old app if exists
+                pm2 delete contact-app || true
+
+                # Start app
+                pm2 start server.js --name contact-app
+
+                pm2 save
                 '''
             }
         }
@@ -47,8 +51,14 @@ pipeline {
             steps {
                 sh '''
                 sudo rm -rf /var/www/html/*
-                sudo cp -r frontend/build/* /var/www/html/
+                sudo cp -r frontend/* /var/www/html/
                 '''
+            }
+        }
+
+        stage('Restart Nginx') {
+            steps {
+                sh 'sudo systemctl restart nginx'
             }
         }
     }
