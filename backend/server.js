@@ -26,7 +26,7 @@ function connectWithRetry() {
 connectWithRetry();
 
 app.get("/", (req, res) => {
-  res.send("Backend API is running 🚀");
+  res.send("Backend API is running ");
 });
 
 app.get("/contacts", (req, res) => {
@@ -71,7 +71,7 @@ app.delete("/contacts/:id", (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
